@@ -1,13 +1,14 @@
 package com.example.newsapp;
 
-//import static android.os.Build.VERSION_CODES.R;
-
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -17,6 +18,7 @@ import android.widget.SearchView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -26,7 +28,9 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
-//import static android.os.Build.VERSION_CODES.R;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,58 +40,54 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity  {
+
     private RecyclerView recyclerView;
     private NewsAdapter newsAdapter;
     private ArrayList<NewsItem> newsList;
     private ProgressBar progressBar;
     private SearchView searchView;
     private Spinner spinnerCategories, spinnerLanguages;
+    private ImageButton btnThemeToggle, btnSettings;
 
-    private static final String API_KEY = "c71f6b20e524848a0e85b9ebbd93ca8d";
-    private static final String BASE_URL = "https://gnews.io/api/v4/top-headlines?token=" + API_KEY;
-
+    private static final String API_KEY  = "c71f6b20e524848a0e85b9ebbd93ca8d";
+    private static final String BASE_URL  = "https://gnews.io/api/v4/top-headlines?token=" + API_KEY;
 
     private String selectedCategory = "general";
     private String selectedLanguage = "en";
-
     private boolean isInitialLoad = true;
     private boolean isFetchingNews = false;
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState)  {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        recyclerView = findViewById(R.id.recyclerView);
+        initViews();
+        setupSpinners();
+        setupSearch();
+        setupThemeToggle();
+        setupSettings();
+    }
+
+    private void initViews()  {
+        recyclerView  = findViewById(R.id.recyclerView);
         progressBar = findViewById(R.id.progressBar);
         searchView = findViewById(R.id.searchView);
         spinnerCategories = findViewById(R.id.spinnerCategories);
         spinnerLanguages = findViewById(R.id.spinnerLanguages);
+        btnThemeToggle = findViewById(R.id.btnThemeToggle);
+        btnSettings = findViewById(R.id.btnSettings);
 
         newsList = new ArrayList<>();
-        newsAdapter = new NewsAdapter(this, newsList);
+        newsAdapter  = new NewsAdapter(this, newsList);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(newsAdapter);
-
-        setupSpinners();
-        setupSearch();
-
-        ImageButton themeToggleBtn = findViewById(R.id.btnThemeToggle);
-        themeToggleBtn.setOnClickListener(v -> {
-            int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-
-            if (currentNightMode == Configuration.UI_MODE_NIGHT_YES) {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-                themeToggleBtn.setImageResource(R.drawable.ic_moon);
-            } else {
-                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-                themeToggleBtn.setImageResource(R.drawable.ic_sun);
-            }
-        });
     }
 
-    private void setupSpinners() {
+//... Rest of your code ...
+
+private void setupSpinners() {
         List<String> categories = Arrays.asList("General", "Business", "Technology", "Health", "Sports", "Entertainment", "Science");
         List<String> categoryCodes = Arrays.asList("general", "business", "technology", "health", "sports", "entertainment", "science");
 
@@ -147,6 +147,64 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void setupThemeToggle() {
+        btnThemeToggle.setOnClickListener(v -> {
+            int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+            if (currentNightMode == Configuration.UI_MODE_NIGHT_YES) {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
+                btnThemeToggle.setImageResource(R.drawable.ic_moon);
+            } else {
+                AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+                btnThemeToggle.setImageResource(R.drawable.ic_sun);
+            }
+        });
+    }
+
+    private void setupSettings() {
+        btnSettings.setOnClickListener(v -> showLogoutDialog());
+    }
+
+    private void showLogoutDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Logout")
+                .setMessage("Do you want to logout?")
+                .setPositiveButton("Logout", (dialog, which) -> logoutUser())
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void logoutUser() {
+        SharedPreferences preferences = getSharedPreferences("loginPrefs", MODE_PRIVATE);
+        String loginType = preferences.getString("loginType", "");
+
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.clear();
+        editor.apply();
+
+        clearLocalSession();
+
+        if ("google".equals(loginType)) {
+            GoogleSignInClient googleSignInClient = GoogleSignIn.getClient(this, GoogleSignInOptions.DEFAULT_SIGN_IN);
+            googleSignInClient.signOut().addOnCompleteListener(this, task -> goToSplash());
+        } else {
+            goToSplash();
+        }
+    }
+
+    private void clearLocalSession() {
+        DatabaseHelper dbHelper = new DatabaseHelper(this); // Replace with your helper class
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+//        db.delete("users", null, null); // Replace "users" with your actual table
+        db.close();
+    }
+
+    private void goToSplash() {
+        Intent intent = new Intent(MainActivity.this, SplashActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
+    }
+
     private String getNewsUrl() {
         return BASE_URL + "&category=" + selectedCategory + "&lang=" + selectedLanguage;
     }
@@ -172,13 +230,12 @@ public class MainActivity extends AppCompatActivity {
                             String description = article.getString("description");
                             String imageUrl = article.getString("image");
                             String newsUrl = article.getString("url");
-
                             newsList.add(new NewsItem(title, description, imageUrl, newsUrl));
                         }
                         newsAdapter.notifyDataSetChanged();
                     } catch (JSONException e) {
                         Toast.makeText(this, "Error parsing news", Toast.LENGTH_SHORT).show();
-                        Log.e("JSON", "Parsing error", e);
+                        Log.e("JSON", "Parsing error: ", e);  // I've added the e parameter to make it more informative in logs
                     }
                 },
                 error -> {
@@ -187,16 +244,16 @@ public class MainActivity extends AppCompatActivity {
                     if (newsList.isEmpty()) {
                         Toast.makeText(this, "Failed to load news", Toast.LENGTH_SHORT).show();
                     }
-                    Log.e("Volley", "Error: " + error.toString());
+                    Log.e("Volley", "Error: ", error);  // I've added the error parameter to make it more informative in logs
                 });
 
         queue.add(request);
     }
 
+
     @Override
     protected void onStart() {
         super.onStart();
-
         if (isInitialLoad) {
             new Handler().postDelayed(() -> fetchNews(getNewsUrl()), 500);
             isInitialLoad = false;

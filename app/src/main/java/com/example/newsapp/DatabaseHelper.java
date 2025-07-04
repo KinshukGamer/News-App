@@ -72,7 +72,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return exists;
     }
 
-    // Copy database to Downloads folder
+    public boolean checkEmailExists(String email) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM users WHERE username = ?", new String[]{email});
+        boolean exists = cursor.getCount() > 0;
+        cursor.close();
+        return exists;
+    }
+// Copy database to Downloads folder
+
+
+
+
+
     private void copyDatabaseToDownloads() {
         try {
             File dbFile = context.getDatabasePath(DATABASE_NAME);

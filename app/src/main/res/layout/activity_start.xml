@@ -46,32 +46,15 @@
 
     <com.google.android.material.imageview.ShapeableImageView
         android:id="@+id/imageView3"
-        android:layout_width="185dp"
-        android:layout_height="185dp"
+        android:layout_width="277dp"
+        android:layout_height="274dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/cars_wallpaper"
+        android:src="@drawable/_ed698f7_7813_4da2_8e3b_a3f0d28a101e"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.455"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.417"
+        app:layout_constraintVertical_bias="0.26"
         app:shapeAppearanceOverlay="@style/CircleImageStyle" />
-
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="313dp"
-        android:layout_height="88dp"
-        android:text="CREATED BY KINSHUK GAMER"
-        android:textColor="#040303"
-        android:textColorLink="#000000"
-        android:textSize="34sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toTopOf="@+id/imageView3"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.632"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.457" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
